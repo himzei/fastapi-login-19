@@ -2,11 +2,17 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, Session
 from pydantic import BaseModel
+from supabase import create_client, ClientOptions
 
 DATABASE_URL = "postgresql://postgres.lndxrlzwtkdzdclrhgyd:bR8apExVnkfJ2caq@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
-
 engine = create_engine(DATABASE_URL)
 Base = declarative_base()
+
+SUPABASE_URL = "https://lndxrlzwtkdzdclrhgyd.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuZHhybHp3dGtkemRjbHJoZ3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ3NzU4OTIsImV4cCI6MjExMDM1MTg5Mn0.D8ZS8QUwUvGon4csu_Xp4IDI4tOIKqCFPhqI-hUNdEk"
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(flow_type="pkce"))
+
+
 
 # 테이블 모델(테이블 이름을 users)
 class Profile(Base):
@@ -19,7 +25,7 @@ class Profile(Base):
 class EmailForm(BaseModel):
     username: str
     email: str
-    provider :str
+    password: str
 
 # 테이블이 없으면 생성
 Base.metadata.create_all(bind=engine)
@@ -39,3 +45,27 @@ def read_home():
     return {
         "hello": "world"
     }
+
+def save_profile(db: Session, user, username, provider):
+    profile = db.get(Profile, user.id)
+    if profile is None: 
+        Profile(id=user.id, email=user.email, username=username, provider=provider)
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
+    return profile 
+
+@app.post("/signup")
+def signup(form: EmailForm, db: Session=Depends(get_db)):
+    res = supabase.auth.sign_up({
+        "email": form.email, 
+        "password": form.password
+    })
+    profile = save_profile(db, res.user, form.username, "email")
+    return {
+        "id": profile.id,
+        "email": profile.email,
+        "username": profile.username
+    }
+
+    
