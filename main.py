@@ -3,7 +3,9 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, Session
 from pydantic import BaseModel
 from supabase import create_client, ClientOptions
+
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import RedirectResponse
 
 DATABASE_URL = "postgresql://postgres.lndxrlzwtkdzdclrhgyd:bR8apExVnkfJ2caq@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
 engine = create_engine(DATABASE_URL)
@@ -114,3 +116,12 @@ def me(cred: HTTPAuthorizationCredentials = Depends(bearer), db: Session = Depen
         "email": profile.email,
         "provider": profile.provider
     }
+
+# 카카오 로그인
+@app.get("/login/kakao")
+def login_kakao():
+    res = supabase.auth.sign_in_with_oauth({
+        "provider": "kakao",
+        "options": {"redirect_to": "http://127.0.0.1:8000/auth/callback"}
+    })
+    return RedirectResponse(res.url)
