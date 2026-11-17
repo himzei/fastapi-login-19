@@ -17,7 +17,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(flow_
 # 테이블 모델(테이블 이름을 users)
 class Profile(Base):
     __tablename__ = "profiles"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(50), primary_key=True, index=True)
     username = Column(String(50), unique=True, index=True)
     email = Column(String(120))
     provider = Column(String(50))
@@ -49,7 +49,7 @@ def read_home():
 def save_profile(db: Session, user, username, provider):
     profile = db.get(Profile, user.id)
     if profile is None: 
-        Profile(id=user.id, email=user.email, username=username, provider=provider)
+        profile = Profile(id=user.id, email=user.email, username=username, provider=provider)
         db.add(profile)
         db.commit()
         db.refresh(profile)
